@@ -1,0 +1,75 @@
+stages:
+  - build
+  - develop
+  - build_master
+  - master
+
+
+
+before_script:
+  - free -m
+#build:
+#  stage: build
+#  tags:
+#    - shell
+#  when: manual
+#  script:
+#    - pwd
+#    - mkdir -p /srv/projects
+##    - sudo chown gitlab-runner:deployer /srv/projects
+#    - cd /srv/projects
+#    - sudo git clone git@gitlab.com:nahang/initapp.git
+#    - cd ./initapp
+#    - sudo git pull origin build
+#    - sudo docker-compose up -d
+##
+
+develop:
+  stage: develop
+  only:
+    - develop
+  script:
+    - pwd
+    - echo "Deployed"
+    - cd /srv/projects/initapp
+    - sudo git pull origin develop
+    - sudo docker-compose build
+    - sudo docker-compose up -d
+    - sudo docker exec -i initial-laravel composer install
+    - sudo docker exec -i initial-laravel chmod 777 -R storage/
+  tags:
+     - shell
+
+
+build_master:
+  stage: build_master
+  only:
+    - build_master
+  tags:
+    - production
+  when: manual
+  script:
+    - pwd
+    - mkdir -p /srv/projects
+#    - sudo chown gitlab-runner:deployer /srv/projects
+    - cd /srv/projects
+    - sudo git clone git@gitlab.com:nahang/initapp.git
+    - cd ./initapp
+    - sudo git pull origin build_master
+    - sudo docker-compose -f docker-compose-prod.yml up -d
+#
+
+master:
+  stage: master
+  only:
+    - master
+  script:
+    - pwd
+    - echo "Deployed"
+    - cd /srv/projects/initapp
+    - sudo git pull origin master
+    - sudo docker-compose -f docker-compose-prod.yml up -d
+    - sudo docker exec -i initial-laravel composer install
+    - sudo docker exec -i initial-laravel chmod 777 -R storage/
+  tags:
+    - production

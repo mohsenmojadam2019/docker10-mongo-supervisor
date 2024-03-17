@@ -1,0 +1,86 @@
+version: '2'
+services:
+
+  #PHP Service
+  new-ms-base-laravel:
+    build:
+      context: .
+      dockerfile: app.dockerfile
+    container_name: new-ms-base-laravel
+    tty: true
+    env_file: 'app/.env'
+    environment:
+      SERVICE_NAME: new-ms-base-laravel
+      SERVICE_TAGS: dev
+    working_dir: /var/www
+    #    ports:
+    #      - "9001:9000"
+    volumes:
+      - ./app:/var/www
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - nahang-main-network
+    depends_on:
+      - new-ms-base-mongodb
+    command: /bin/bash -c "php-fpm | /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf"
+
+  #Nginx Service
+  new-ms-base-webserver:
+    image: nginx:latest
+    container_name: new-ms-base-webserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8202:80"
+    volumes:
+      - ./app:/var/www
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    depends_on:
+      - new-ms-base-laravel
+    networks:
+      - nahang-main-network
+
+  #mongodb service
+  new-ms-base-mongodb:
+    container_name: new-ms-base-mongodb
+    image: mongo:latest
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    restart: unless-stopped
+    ports:
+      - "28002:27017"
+    volumes:
+      - ./mongodata:/data/db
+      - ./mongodb/scripts:/docker-entrypoint-initdb.d
+    networks:
+      - nahang-main-network
+
+  #mongodb express
+  new-ms-base-mongo-express:
+    image: mongo-express
+    container_name: new-ms-base-mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+      - ME_CONFIG_MONGODB_URL=mongodb://root:password@new-ms-base-mongodb:27017/?authSource=admin
+      - ME_CONFIG_BASICAUTH_USERNAME=mexpress
+      - ME_CONFIG_BASICAUTH_PASSWORD=mexpress
+    links:
+      - new-ms-base-mongodb
+    restart: unless-stopped
+    ports:
+      - "29002:8081"
+    networks:
+      - nahang-main-network
+
+#Docker Networks
+networks:
+  nahang-main-network:
+    driver: bridge
+    external: true
+
+#Volumes
+volumes:
+  mongodata:
+    driver: local

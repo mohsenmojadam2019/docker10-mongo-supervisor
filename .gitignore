@@ -1,0 +1,11 @@
+app/.idea
+/.idea
+.DS_Store
+app/public/.DS_Store
+app/composer.lock
+app/storage/logs/*.log
+mongodata
+mongodb
+app/.env
+mongo
+.env
